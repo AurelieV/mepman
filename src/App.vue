@@ -1,5 +1,6 @@
 <template>
     <button @click="generate">New color</button>
+    <button @click="exportMepMan">Export</button>
     <div :style="cssVar" ref="print">
         <svg id="MepMan" ref="mepman" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
             <path
@@ -126,15 +127,19 @@ export default {
 
         generate();
 
+        async function exportMepMan() {
+            const node = print.value;
+            try {
+                const blob = await domtoimage.toBlob(node);
+                saveAs(blob, "mepman.png");
+            } catch (err) {
+                console.log(err);
+            }
+        }
+
         document.addEventListener("keydown", async (event) => {
             if (event.key === "p") {
-                const node = print.value;
-                try {
-                    const blob = await domtoimage.toBlob(node);
-                    saveAs(blob, "mepman.png");
-                } catch (err) {
-                    console.log(err);
-                }
+                exportMepMan();
             }
         });
 
@@ -148,6 +153,7 @@ export default {
             pullColor,
             generate,
             print,
+            exportMepMan
         };
     },
     computed: {
