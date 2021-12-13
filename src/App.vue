@@ -1,5 +1,6 @@
 <template>
-    <div :style="cssVar">
+    <button @click="generate">New color</button>
+    <div :style="cssVar" ref="print">
         <svg id="MepMan" ref="mepman" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
             <path
                 id="Background"
@@ -66,16 +67,26 @@
             </g>
         </svg>
     </div>
+    <div :style="{ backgroundColor: color, width: '10px', height: '10px' }" v-for="color in colors" :key="color"></div>
 </template>
 
 <script>
 import { onMounted, onUnmounted, ref, reactive } from "vue";
+import ColorScheme from "color-scheme";
+import domtoimage from "dom-to-image";
+import { saveAs } from "file-saver";
 
 export default {
     setup() {
         const mepman = ref(null);
+        const print = ref(null);
         const translateRightEye = reactive({ x: 0, y: 0 });
         const translateLeftEye = reactive({ x: 0, y: 0 });
+        const pullColor = ref(null);
+        const backgroundColor = ref(null);
+        const maskColor = ref(null);
+        const colors = ref([]);
+
         function onMouseMouve(event) {
             const { width, height, x, y } = mepman.value.getBoundingClientRect();
             const rightEyePositionX = (580 / 1000) * width + x;
@@ -101,7 +112,43 @@ export default {
         onMounted(() => document.addEventListener("mousemove", onMouseMouve));
         onUnmounted(() => document.removeEventListener("mousemove", onMouseMouve));
 
-        return { mepman, translateRightEye, translateLeftEye };
+        function generate() {
+            const scheme = new ColorScheme();
+            scheme
+                .from_hue(Math.floor(Math.random() * 360))
+                .scheme("triade")
+                .variation("pastel");
+            colors.value = scheme.colors().map((color) => `#${color}`);
+            pullColor.value = colors.value[Math.floor(Math.random() * 4)];
+            backgroundColor.value = colors.value[Math.floor(Math.random() * 4) + 4];
+            maskColor.value = colors.value[Math.floor(Math.random() * 4) + 8];
+        }
+
+        generate();
+
+        document.addEventListener("keydown", async (event) => {
+            if (event.key === "p") {
+                const node = print.value;
+                try {
+                    const blob = await domtoimage.toBlob(node);
+                    saveAs(blob, "mepman.png");
+                } catch (err) {
+                    console.log(err);
+                }
+            }
+        });
+
+        return {
+            mepman,
+            translateRightEye,
+            translateLeftEye,
+            colors,
+            backgroundColor,
+            maskColor,
+            pullColor,
+            generate,
+            print,
+        };
     },
     computed: {
         cssVar() {
@@ -113,6 +160,8 @@ export default {
                 "--pull-color": this.pullColor,
                 "--bg-color": this.backgroundColor,
                 "--mask-color": this.maskColor,
+                width: "1000px",
+                height: "1000px",
             };
         },
     },
@@ -125,9 +174,6 @@ function translate(pos, mouse) {
 </script>
 
 <style scoped>
-#MepMan {
-    width: 600px;
-}
 #OeilDroit {
     transform: translate(var(--translateXRightEye), var(--translateYRightEye));
 }
